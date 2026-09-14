@@ -12,20 +12,13 @@ import {
 import {
   DATE_FORMAT,
   getAssetProfileIdentifier,
-  getStartOfUtcDateOfYesterday,
-  resetHours
+  getStartOfUtcDateOfYesterday
 } from '@ghostfolio/common/helper';
 import { DataProviderHistoricalResponse } from '@ghostfolio/common/interfaces';
 
 import { utc } from '@date-fns/utc';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  eachDayOfInterval,
-  format,
-  isBefore,
-  isToday,
-  subDays
-} from 'date-fns';
+import { eachDayOfInterval, format, isBefore, isToday } from 'date-fns';
 import { isNumber } from 'lodash';
 import ms from 'ms';
 
@@ -75,6 +68,11 @@ export class ExchangeRateDataService {
       [currency: string]: { [dateString: string]: number };
     } = {};
 
+    const dates = eachDayOfInterval({
+      start: startDate,
+      end: endDate
+    }).reverse();
+
     for (const currency of currencies) {
       exchangeRatesByCurrency[`${currency}${targetCurrency}`] =
         await this.getExchangeRates({
@@ -97,11 +95,7 @@ export class ExchangeRateDataService {
 
       // Start from the most recent date and fill in missing exchange rates
       // using the latest available rate
-      for (
-        let date = endDate;
-        !isBefore(date, startDate);
-        date = subDays(resetHours(date), 1)
-      ) {
+      for (const date of dates) {
         const dateString = format(date, DATE_FORMAT);
 
         // Check if the exchange rate for the current date is missing
